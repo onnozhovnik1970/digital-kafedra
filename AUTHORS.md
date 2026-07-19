@@ -28,9 +28,8 @@ AI integration, cloud deployment
 **Role:** QA & Regulatory Consultant  
 **Contribution:** Functional testing, UX consulting, 
 NAZYAVO regulatory compliance consulting  
-**GitHub:** [@tetianaharbuza1982-art]
-(https://github.com/tetianaharbuza1982-art)
-**ORCID:**0000-0002-2346-5156
+**GitHub:** [@tetianaharbuza1982-art]https://github.com/tetianaharbuza1982-art)
+**ORCID:** 0000-0002-2346-5156
 
 ## Institution
 State University of Trade and Economics (SUTE), Kyiv, Ukraine  
