@@ -40,23 +40,31 @@ export default function DashboardPage() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-8 py-12">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          Вітаємо! 👋
-        </h2>
-        <p className="text-gray-500 mb-8">Ваш особистий кабінет викладача</p>
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">
+  🎓 Вітаємо у «Цифровому завкафі»!
+</h2>
+<p className="text-gray-500 mb-8">Відстежуйте свій рейтинг, відповідність ліцензійним вимогам та формуйте звіти в один клік</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div
+            onClick={() => router.push('/profile')}
+            className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition"
+          >
+            <div className="text-3xl mb-3">👤</div>
+            <h3 className="font-semibold text-gray-800">Мій профіль</h3>
+            <p className="text-gray-400 text-sm mt-1">ПІБ, посада, ступінь</p>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition">
             <div className="text-3xl mb-3">📚</div>
             <h3 className="font-semibold text-gray-800">Публікації</h3>
             <p className="text-gray-400 text-sm mt-1">Додати публікацію</p>
           </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition">
             <div className="text-3xl mb-3">🏆</div>
             <h3 className="font-semibold text-gray-800">Сертифікати</h3>
             <p className="text-gray-400 text-sm mt-1">Підвищення кваліфікації</p>
           </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition">
             <div className="text-3xl mb-3">📊</div>
             <h3 className="font-semibold text-gray-800">Звітність</h3>
             <p className="text-gray-400 text-sm mt-1">Експорт у PDF/Excel</p>
