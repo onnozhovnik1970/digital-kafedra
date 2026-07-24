@@ -37,6 +37,7 @@ export default function PublicationsPage() {
     doi: '',
     pub_type: '' as string,
     foreign_language: false,
+    file: null as File | null,
   })
 
   useEffect(() => {
@@ -66,6 +67,23 @@ export default function PublicationsPage() {
 
   const handleAdd = async () => {
     setLoading(true)
+    
+    let fileUrl = null
+    
+    // Завантаження файлу якщо є
+    if (form.file) {
+      const fileExt = form.file.name.split('.').pop()
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, form.file)
+      
+      if (!uploadError) {
+        fileUrl = filePath
+      }
+    }
+    
     const { error } = await supabase
       .from('publications')
       .insert({ 
@@ -76,12 +94,14 @@ export default function PublicationsPage() {
         doi: form.doi,
         type: form.pub_type,
         foreign_language: form.foreign_language,
+        certificate_url: fileUrl,
         profile_id: user.id 
       })
+    
     if (error) console.error(error)
     if (!error) {
       setShowForm(false)
-      setForm({ title: '', type: 'article', year: new Date().getFullYear(), journal: '', authors: '', doi: '', url: '', scopus: false, wos: false, foreign_language: false })
+      setForm({ title: '', year: new Date().getFullYear(), journal: '', authors: '', doi: '', pub_type: '', foreign_language: false, file: null })
       loadPublications(user.id)
     }
     setLoading(false)
@@ -127,6 +147,7 @@ export default function PublicationsPage() {
       case 'monograph': points = 70; break
       case 'textbook': points = 60; break
       case 'popular': points = 10; break
+      case 'thesis_other': points = 50; break
       default: points = 10
     }
   
@@ -224,44 +245,34 @@ export default function PublicationsPage() {
                 />
               </div>
 
-              <div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">Рік</label>
-  <input
-    type="number"
-    value={form.year}
-    onChange={(e) => setForm({...form, year: parseInt(e.target.value)})}
+    <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">Тип публікації *</label>
+  <select
+    value={form.pub_type}
+    onChange={(e) => setForm({...form, pub_type: e.target.value})}
     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-  />
-</div>
-
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-3">Тип публікації *</label>
-  <div className="grid grid-cols-1 gap-2">
-    {[
-      { value: 'scopus_q1q2', label: 'Стаття Scopus/WoS Q1-Q2' },
-      { value: 'scopus_q3q4', label: 'Стаття Scopus/WoS Q3-Q4' },
-      { value: 'scopus_thesis', label: 'Матеріали конференції Scopus/WoS' },
-      { value: 'professional_b', label: 'Стаття у фаховому виданні України кат. Б' },
-      { value: 'dteu_journal', label: 'Стаття у журналі ДТЕУ' },
-      { value: 'eu_oecd', label: 'Стаття у закордонному виданні ЄС/ОЕСР' },
-      { value: 'monograph', label: 'Монографія' },
-      { value: 'monograph_scopus', label: 'Монографія (Scopus/WoS)' },
-      { value: 'textbook', label: 'Підручник/посібник' },
-      { value: 'popular', label: 'Науково-популярна публікація' },
-    ].map((option) => (
-      <label key={option.value} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-lg">
-        <input
-          type="radio"
-          name="pub_type"
-          value={option.value}
-          checked={form.pub_type === option.value}
-          onChange={(e) => setForm({...form, pub_type: e.target.value})}
-          className="w-4 h-4 text-blue-600"
-        />
-        <span className="text-sm text-gray-700">{option.label}</span>
-      </label>
-    ))}
-  </div>
+  >
+    <option value="">Оберіть тип публікації</option>
+    <optgroup label="Scopus / Web of Science">
+      <option value="scopus_q1q2">Стаття Scopus/WoS Q1-Q2</option>
+      <option value="scopus_q3q4">Стаття Scopus/WoS Q3-Q4</option>
+      <option value="scopus_thesis">Матеріали конференції Scopus/WoS</option>
+      <option value="monograph_scopus">Монографія (Scopus/WoS)</option>
+    </optgroup>
+    <optgroup label="Українські видання">
+      <option value="dteu_journal">Стаття у журналі ДТЕУ</option>
+      <option value="professional_b">Стаття у фаховому виданні України кат. Б</option>
+    </optgroup>
+    <optgroup label="Закордонні видання">
+      <option value="eu_oecd">Стаття у закордонному виданні ЄС/ОЕСР</option>
+    </optgroup>
+    <optgroup label="Інші типи">
+      <option value="monograph">Монографія</option>
+      <option value="textbook">Підручник/посібник</option>
+      <option value="thesis_other">Тези конференції</option>
+      <option value="popular">Науково-популярна публікація</option>
+    </optgroup>
+  </select>
 </div>
 
 <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded-lg">
@@ -294,7 +305,38 @@ export default function PublicationsPage() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
+              <div className="grid grid-cols-3 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Том</label>
+    <input
+      type="text"
+      placeholder="5"
+      value={(form as any).volume || ''}
+      onChange={(e) => setForm({...form, volume: e.target.value} as any)}
+      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Випуск</label>
+    <input
+      type="text"
+      placeholder="47"
+      value={(form as any).issue || ''}
+      onChange={(e) => setForm({...form, issue: e.target.value} as any)}
+      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Сторінки</label>
+    <input
+      type="text"
+      placeholder="283-294"
+      value={(form as any).pages || ''}
+      onChange={(e) => setForm({...form, pages: e.target.value} as any)}
+      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+</div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Співавтори</label>
                 <input
@@ -319,6 +361,20 @@ export default function PublicationsPage() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Підтверджуючий документ (PDF)
+  </label>
+  <input
+    type="file"
+    accept=".pdf,.doc,.docx"
+    onChange={(e) => setForm({...form, file: e.target.files?.[0] || null})}
+    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  <p className="text-xs text-gray-400 mt-1">
+    💡 Якщо немає DOI — завантажте PDF статті як підтвердження
+  </p>
+</div>
 
                <button
                 onClick={handleAdd}
@@ -372,7 +428,6 @@ export default function PublicationsPage() {
 >
   ✏️
 </button>
-
                   <button
                     onClick={() => handleDelete(pub.id)}
                     className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full hover:bg-red-200 transition"
@@ -415,6 +470,58 @@ export default function PublicationsPage() {
           className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
+      <div className="grid grid-cols-3 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Том</label>
+    <input
+      type="text"
+      placeholder="5"
+      value={editForm.volume || ''}
+      onChange={(e) => setEditForm({...editForm, volume: e.target.value})}
+      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Випуск</label>
+    <input
+      type="text"
+      placeholder="47"
+      value={editForm.issue || ''}
+      onChange={(e) => setEditForm({...editForm, issue: e.target.value})}
+      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Сторінки</label>
+    <input
+      type="text"
+      placeholder="283-294"
+      value={editForm.pages || ''}
+      onChange={(e) => setEditForm({...editForm, pages: e.target.value})}
+      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+</div>
+      <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">DOI або URL</label>
+  <input
+    type="text"
+    placeholder="https://doi.org/..."
+    value={editForm.doi || ''}
+    onChange={(e) => setEditForm({...editForm, doi: e.target.value})}
+    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
+      <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">DOI або URL</label>
+  <input
+    type="text"
+    placeholder="https://doi.org/..."
+    value={editForm.doi || ''}
+    onChange={(e) => setEditForm({...editForm, doi: e.target.value})}
+    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Співавтори</label>
         <input
@@ -425,34 +532,35 @@ export default function PublicationsPage() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Тип публікації</label>
-        <div className="grid grid-cols-1 gap-2">
-          {[
-            { value: 'scopus_q1q2', label: 'Стаття Scopus/WoS Q1-Q2' },
-            { value: 'scopus_q3q4', label: 'Стаття Scopus/WoS Q3-Q4' },
-            { value: 'scopus_thesis', label: 'Матеріали конференції Scopus/WoS' },
-            { value: 'professional_b', label: 'Стаття у фаховому виданні України кат. Б' },
-            { value: 'dteu_journal', label: 'Стаття у журналі ДТЕУ' },
-            { value: 'eu_oecd', label: 'Стаття у закордонному виданні ЄС/ОЕСР' },
-            { value: 'monograph', label: 'Монографія' },
-            { value: 'monograph_scopus', label: 'Монографія (Scopus/WoS)' },
-            { value: 'textbook', label: 'Підручник/посібник' },
-            { value: 'popular', label: 'Науково-популярна публікація' },
-          ].map((option) => (
-            <label key={option.value} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-lg">
-              <input
-                type="radio"
-                name="edit_pub_type"
-                value={option.value}
-                checked={editForm.pub_type === option.value}
-                onChange={(e) => setEditForm({...editForm, pub_type: e.target.value})}
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="text-sm text-gray-700">{option.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">Тип публікації *</label>
+  <select
+    value={form.pub_type}
+    onChange={(e) => setForm({...form, pub_type: e.target.value})}
+    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="">Оберіть тип публікації</option>
+    <optgroup label="Scopus / Web of Science">
+      <option value="scopus_q1q2">Стаття Scopus/WoS Q1-Q2</option>
+      <option value="scopus_q3q4">Стаття Scopus/WoS Q3-Q4</option>
+      <option value="scopus_thesis">Матеріали конференції Scopus/WoS</option>
+      <option value="monograph_scopus">Монографія (Scopus/WoS)</option>
+    </optgroup>
+    <optgroup label="Українські видання">
+      <option value="dteu_journal">Стаття у журналі ДТЕУ</option>
+      <option value="professional_b">Стаття у фаховому виданні України кат. Б</option>
+    </optgroup>
+    <optgroup label="Закордонні видання">
+      <option value="eu_oecd">Стаття у закордонному виданні ЄС/ОЕСР</option>
+    </optgroup>
+    <optgroup label="Інші типи">
+      <option value="monograph">Монографія</option>
+      <option value="textbook">Підручник/посібник</option>
+      <option value="thesis_other">Тези конференції</option>
+      <option value="popular">Науково-популярна публікація</option>
+    </optgroup>
+  </select>
+</div>
+
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
