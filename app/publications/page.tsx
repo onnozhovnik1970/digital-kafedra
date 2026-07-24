@@ -93,22 +93,20 @@ export default function PublicationsPage() {
       const response = await fetch('/api/verify-publication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: pub.title,
-          journal: pub.journal,
-          type: pub.type,
-          scopus: pub.scopus,
-          wos: pub.wos,
-          ukrainian_professional: (pub as any).ukrainian_professional
-        }),
+        body: JSON.stringify({ doi: pub.doi }),
       })
       const data = await response.json()
+      
       await supabase
         .from('publications')
-        .update({ verified: data.verified, verification_note: data.note })
+        .update({ 
+          verified: data.verified, 
+          verification_note: data.message 
+        })
         .eq('id', pub.id)
+      
       loadPublications(user.id)
-          } catch (e) {
+    } catch (e) {
       console.error(e)
     }
     setVerifying(null)
@@ -359,12 +357,22 @@ export default function PublicationsPage() {
                   {pub.authors && <p className="text-sm text-gray-400">Співавтори: {pub.authors}</p>}
                   </div>
                 <div className="flex gap-2 ml-4">
-                 <button
+                {pub.doi && (
+  <button
+    onClick={() => handleVerify(pub)}
+    disabled={verifying === pub.id}
+    className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 transition"
+  >
+    {verifying === pub.id ? '⏳' : '🔍 Верифікувати'}
+  </button>
+)}
+<button
   onClick={() => handleEdit(pub)}
   className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200 transition"
 >
   ✏️
 </button>
+
                   <button
                     onClick={() => handleDelete(pub.id)}
                     className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full hover:bg-red-200 transition"

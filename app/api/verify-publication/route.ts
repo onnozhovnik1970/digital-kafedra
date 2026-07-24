@@ -1,41 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, journal, type, scopus, wos, foreign_language, ukrainian_professional } = await request.json()
-    
+    const { doi } = await request.json()
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: 'Ти асистент завідувача кафедри іноземних мов ДТЕУ. ' +
-'Проаналізуй ТІЛЬКИ тематичну відповідність публікації профілю кафедри. ' +
-'Профіль: іноземні мови, ESP, ділова комунікація, дипломатичний дискурс, методика викладання. ' +
-'Назва публікації: ' + title + '. ' +
-'Напиши 1-2 речення: чи відповідає тематика профілю кафедри і чому. ' +
-'НЕ згадуй журнал, видавництво, бали, Scopus, WoS, фаховість. ТІЛЬКИ тематика. ' +
-'Відповідай ТІЛЬКИ JSON: {"verified": true, "note": "коментар про тематику"}'
-      }]
+    if (!doi) {
+      return NextResponse.json({ 
+        verified: false, 
+        message: 'DOI не вказано' 
+      })
+    }
+
+    // Очищаємо DOI від префіксу https://doi.org/
+    const cleanDoi = doi
+      .replace('https://doi.org/', '')
+      .replace('http://doi.org/', '')
+      .replace('doi:', '')
+      .trim()
+
+    // Запит до Crossref API
+    const response = await fetch(
+      `https://api.crossref.org/works/${cleanDoi}`,
+      {
+        headers: {
+          'User-Agent': 'digital-kafedra/1.0 (mailto:o.n.nozhovnik@gmail.com)'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      return NextResponse.json({ 
+        verified: false, 
+        message: 'Публікацію не знайдено у базі Crossref. Перевірте DOI або завантажте підтверджуючий документ.' 
+      })
+    }
+
+    const data = await response.json()
+    const work = data.message
+
+    return NextResponse.json({
+      verified: true,
+      message: 'Публікацію верифіковано через Crossref ✅',
+      details: {
+        title: work.title?.[0] || '',
+        authors: work.author?.map((a: any) => `${a.given} ${a.family}`).join(', ') || '',
+        journal: work['container-title']?.[0] || '',
+        year: work.published?.['date-parts']?.[0]?.[0] || '',
+        publisher: work.publisher || '',
+        issn: work.ISSN?.[0] || '',
+      }
     })
-
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('No text')
-
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('No JSON')
-
-    const result = JSON.parse(jsonMatch[0])
-    return NextResponse.json(result)
 
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ verified: false, note: 'Помилка верифікації.' })
+    return NextResponse.json({ 
+      verified: false, 
+      message: 'Помилка верифікації. Спробуйте пізніше.' 
+    })
   }
 }
