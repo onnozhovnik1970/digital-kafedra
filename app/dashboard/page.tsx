@@ -54,16 +54,22 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-gray-800">Мій профіль</h3>
             <p className="text-gray-400 text-sm mt-1">ПІБ, посада, ступінь</p>
           </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition">
-            <div className="text-3xl mb-3">📚</div>
-            <h3 className="font-semibold text-gray-800">Публікації</h3>
-            <p className="text-gray-400 text-sm mt-1">Додати публікацію</p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition">
-            <div className="text-3xl mb-3">🏆</div>
-            <h3 className="font-semibold text-gray-800">Сертифікати</h3>
-            <p className="text-gray-400 text-sm mt-1">Підвищення кваліфікації</p>
-          </div>
+          <div
+  onClick={() => router.push('/publications')}
+  className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition"
+>
+  <div className="text-3xl mb-3">📚</div>
+  <h3 className="font-semibold text-gray-800">Публікації</h3>
+  <p className="text-gray-400 text-sm mt-1">Додати публікацію</p>
+</div>
+          <div
+  onClick={() => router.push('/qualifications')}
+  className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition"
+>
+  <div className="text-3xl mb-3">🏆</div>
+  <h3 className="font-semibold text-gray-800">Сертифікати</h3>
+  <p className="text-gray-400 text-sm mt-1">Підвищення кваліфікації</p>
+</div>
           <div className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition">
             <div className="text-3xl mb-3">📊</div>
             <h3 className="font-semibold text-gray-800">Звітність</h3>
