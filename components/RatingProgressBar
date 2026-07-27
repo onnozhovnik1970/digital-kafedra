@@ -1,0 +1,51 @@
+import { RatingStatus, RatingThresholds, getProgressPercent, getRatingStatus } from '@/lib/rating';
+
+const STATUS_STYLES: Record<RatingStatus, { bar: string; label: string; text: string }> = {
+  red: { bar: 'bg-red-500', label: 'Нижче мінімуму', text: 'text-red-700' },
+  yellow: { bar: 'bg-yellow-500', label: 'У межах норми', text: 'text-yellow-700' },
+  green: { bar: 'bg-green-500', label: 'Ціль досягнута', text: 'text-green-700' },
+  excellent: { bar: 'bg-emerald-600', label: 'Відмінно', text: 'text-emerald-700' },
+};
+
+interface Props {
+  points: number;
+  thresholds: RatingThresholds;
+  academicYear: string;
+}
+
+export function RatingProgressBar({ points, thresholds, academicYear }: Props) {
+  const status = getRatingStatus(points, thresholds);
+  const percent = getProgressPercent(points, thresholds);
+  const style = STATUS_STYLES[status];
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-1 text-sm">
+        <span className="font-medium text-gray-700">
+          Рейтинг за {academicYear} н.р.
+        </span>
+        <span className={`font-semibold ${style.text}`}>
+          {points} / {thresholds.target_threshold} балів — {style.label}
+        </span>
+      </div>
+      <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${style.bar}`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {/* min-threshold marker */}
+      {thresholds.target_threshold > 0 && (
+        <div className="relative h-0">
+          <div
+            className="absolute -top-4 border-l border-gray-400 h-3"
+            style={{
+              left: `${Math.min(100, (thresholds.min_threshold / thresholds.target_threshold) * 100)}%`,
+            }}
+            title={`Мінімум: ${thresholds.min_threshold}`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
