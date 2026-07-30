@@ -28,7 +28,7 @@ export default async function AdminRatingPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/auth/login');
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -38,7 +38,7 @@ export default async function AdminRatingPage({ searchParams }: PageProps) {
     .single();
 
   if (profileError || !profile) {
-    redirect('/login');
+    redirect('/auth/login');
   }
 
   if (profile.role !== 'head') {

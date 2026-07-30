@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface Props {
   departmentId: string;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function RatingThresholdsForm({ departmentId, academicYear, initial }: Props) {
+  const router = useRouter();
   const [minThreshold, setMinThreshold] = useState(initial?.min_threshold ?? 0);
   const [targetThreshold, setTargetThreshold] = useState(initial?.target_threshold ?? 1000);
   const [excellentThreshold, setExcellentThreshold] = useState<number | ''>(
@@ -21,25 +23,41 @@ export function RatingThresholdsForm({ departmentId, academicYear, initial }: Pr
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   async function handleSave() {
     setSaving(true);
     setError(null);
+    try {
+      const { error: upsertError } = await supabase.from('rating_thresholds').upsert(
+        {
+          department_id: departmentId,
+          academic_year: academicYear,
+          min_threshold: minThreshold,
+          target_threshold: targetThreshold,
+          excellent_threshold: excellentThreshold === '' ? null : excellentThreshold,
+        },
+        { onConflict: 'department_id,academic_year' }
+      );
 
-    const { error: upsertError } = await supabase.from('rating_thresholds').upsert(
-      {
-        department_id: departmentId,
-        academic_year: academicYear,
-        min_threshold: minThreshold,
-        target_threshold: targetThreshold,
-        excellent_threshold: excellentThreshold === '' ? null : excellentThreshold,
-      },
-      { onConflict: 'department_id,academic_year' }
-    );
-
-    setSaving(false);
-    if (upsertError) setError(upsertError.message);
+      if (upsertError) {
+        setError(upsertError.message);
+      } else {
+        setSuccess(true);
+        router.refresh();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Невідома помилка');
+    } finally {
+      setSaving(false);
+    }
   }
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   return (
     <div className="max-w-md space-y-4 p-4 border rounded-lg">
@@ -81,8 +99,9 @@ export function RatingThresholdsForm({ departmentId, academicYear, initial }: Pr
         />
       </div>
 
+      {success && <p className="text-green-600 text-sm">✅ Збережено</p>}
       {error && <p className="text-red-600 text-sm">{error}</p>}
-
+      
       <button
         onClick={handleSave}
         disabled={saving}
