@@ -64,33 +64,42 @@ export function calculateQualificationPoints(qual: QualificationRow): number {
 }
 
 /**
- * Sum of points from publications + qualifications for one lecturer.
- * v1: all-time total, not scoped to a single academic year (publications only
- * stores a single `year` integer, no academic_year range).
+ * Sum of points from publications + qualifications + approved work_entries
+ * for one lecturer. v1: all-time total, not scoped to a single academic year.
  */
 export async function getLecturerRatingPoints(
   supabase: SupabaseClient,
   profileId: string
 ): Promise<number> {
-  const [{ data: pubs, error: pubsError }, { data: quals, error: qualsError }] =
-    await Promise.all([
-      supabase
-        .from('publications')
-        .select('type, foreign_language, authors')
-        .eq('profile_id', profileId),
-      supabase
-        .from('qualifications')
-        .select('type, is_international')
-        .eq('profile_id', profileId),
-    ]);
+  const [
+    { data: pubs, error: pubsError },
+    { data: quals, error: qualsError },
+    { data: entries, error: entriesError },
+  ] = await Promise.all([
+    supabase
+      .from('publications')
+      .select('type, foreign_language, authors')
+      .eq('profile_id', profileId),
+    supabase
+      .from('qualifications')
+      .select('type, is_international')
+      .eq('profile_id', profileId),
+    supabase
+      .from('work_entries')
+      .select('points_awarded')
+      .eq('profile_id', profileId)
+      .eq('status', 'approved'),
+  ]);
 
   if (pubsError) throw pubsError;
   if (qualsError) throw qualsError;
+  if (entriesError) throw entriesError;
 
   const pubsTotal = (pubs ?? []).reduce((sum, row) => sum + calculatePublicationPoints(row), 0);
   const qualsTotal = (quals ?? []).reduce((sum, row) => sum + calculateQualificationPoints(row), 0);
+  const entriesTotal = (entries ?? []).reduce((sum, row) => sum + (row.points_awarded ?? 0), 0);
 
-  return pubsTotal + qualsTotal;
+  return pubsTotal + qualsTotal + entriesTotal;
 }
 
 /**

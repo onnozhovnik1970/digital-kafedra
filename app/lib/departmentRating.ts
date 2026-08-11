@@ -27,7 +27,8 @@ export interface DepartmentRatingSummary {
 
 /**
  * Points for every lecturer in a department, computed server-side from raw
- * publications/qualifications rows (v1: all-time total, not year-scoped).
+ * publications/qualifications rows plus approved work_entries.
+ * v1: all-time total, not year-scoped.
  */
 export async function getDepartmentRatingSummary(
   supabase: SupabaseClient,
@@ -53,24 +54,35 @@ export async function getDepartmentRatingSummary(
 
   const profileIds = (profiles ?? []).map((p) => p.id);
 
-  const [{ data: pubs, error: pubsError }, { data: quals, error: qualsError }] =
-    await Promise.all([
-      profileIds.length > 0
-        ? supabase
-            .from('publications')
-            .select('profile_id, type, foreign_language, authors')
-            .in('profile_id', profileIds)
-        : Promise.resolve({ data: [], error: null }),
-      profileIds.length > 0
-        ? supabase
-            .from('qualifications')
-            .select('profile_id, type, is_international')
-            .in('profile_id', profileIds)
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+  const [
+    { data: pubs, error: pubsError },
+    { data: quals, error: qualsError },
+    { data: entries, error: entriesError },
+  ] = await Promise.all([
+    profileIds.length > 0
+      ? supabase
+          .from('publications')
+          .select('profile_id, type, foreign_language, authors')
+          .in('profile_id', profileIds)
+      : Promise.resolve({ data: [], error: null }),
+    profileIds.length > 0
+      ? supabase
+          .from('qualifications')
+          .select('profile_id, type, is_international')
+          .in('profile_id', profileIds)
+      : Promise.resolve({ data: [], error: null }),
+    profileIds.length > 0
+      ? supabase
+          .from('work_entries')
+          .select('profile_id, points_awarded')
+          .in('profile_id', profileIds)
+          .eq('status', 'approved')
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
   if (pubsError) throw pubsError;
   if (qualsError) throw qualsError;
+  if (entriesError) throw entriesError;
 
   const pointsByProfile = new Map<string, number>();
 
@@ -81,6 +93,12 @@ export async function getDepartmentRatingSummary(
   for (const row of quals ?? []) {
     const pts = calculateQualificationPoints(row);
     pointsByProfile.set(row.profile_id, (pointsByProfile.get(row.profile_id) ?? 0) + pts);
+  }
+  for (const row of entries ?? []) {
+    pointsByProfile.set(
+      row.profile_id,
+      (pointsByProfile.get(row.profile_id) ?? 0) + (row.points_awarded ?? 0)
+    );
   }
 
   const countByStatus: Record<RatingStatus, number> = {
@@ -112,4 +130,3 @@ export async function getDepartmentRatingSummary(
     countByStatus,
   };
 }
-
