@@ -4,7 +4,7 @@ import { getDepartmentThreshold } from '@/lib/rating';
 import { getDepartmentRatingSummary } from '@/lib/departmentRating';
 import { RatingThresholdsForm } from '@/components/RatingThresholdsForm';
 import { DepartmentRatingTable } from '@/components/DepartmentRatingTable';
-
+import Link from 'next/link';
 /** Ukrainian academic year runs Sept 1 - Aug 31. Sept 2026 -> '2026-2027'. */
 function getCurrentAcademicYear(): string {
   const now = new Date();
@@ -68,10 +68,18 @@ export default async function AdminRatingPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Рейтинг кафедри</h1>
-        <p className="text-sm text-gray-500">{academicYear} навчальний рік</p>
-      </div>
+<div className="flex justify-between items-start">
+  <div>
+    <h1 className="text-xl font-semibold text-gray-900">Рейтинг кафедри</h1>
+    <p className="text-sm text-gray-500">{academicYear} навчальний рік</p>
+  </div>
+  <Link
+    href="/admin/reports"
+    className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+  >
+    📄 Звіт кафедри
+  </Link>
+</div>
 
       <RatingThresholdsForm
         departmentId={profile.department_id}
