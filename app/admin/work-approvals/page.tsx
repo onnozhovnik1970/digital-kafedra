@@ -49,7 +49,7 @@ export default function WorkApprovalsPage() {
     setLoading(true)
     const { data, error } = await supabase
       .from('work_entries')
-      .select('*, work_types(name, category, unit), profiles(full_name)')
+      .select('*, work_types(name, category, unit), profiles!work_entries_profile_id_fkey(full_name)')
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
     if (error) console.error(error)

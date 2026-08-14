@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { calculatePublicationPoints, calculateQualificationPoints } from './rating';
+import { getSurveyCoefficient } from './surveyCoefficient';
 
 export interface ReportItem {
   category: string;
@@ -8,11 +9,26 @@ export interface ReportItem {
   points: number;
 }
 
+export interface SurveyInfo {
+  score: number;
+  coefficient: number;
+}
+
+export interface ExpertEvaluationSummary {
+  date: string;
+  discipline: string | null;
+  total: number;
+  coefficient: number;
+  evaluatorName: string | null;
+}
+
 export interface LecturerReportData {
   fullName: string;
   academicYear: string;
   items: ReportItem[];
   totalPoints: number;
+  surveyInfo: SurveyInfo | null;
+  expertEvaluations: ExpertEvaluationSummary[];
 }
 
 export interface DepartmentReportRow {
@@ -53,28 +69,41 @@ const qualificationTypeLabels: Record<string, string> = {
   other: 'Інше',
 };
 
-/** Builds the itemized report for a single lecturer: every publication, qualification, and approved work entry as one row. */
+/** Builds the itemized report for a single lecturer: every publication, qualification, and approved work entry as one row, plus survey/expert evaluation info. */
 export async function getLecturerReportData(
   supabase: SupabaseClient,
   profileId: string,
   fullName: string,
   academicYear: string
 ): Promise<LecturerReportData> {
-  const [{ data: pubs }, { data: quals }, { data: entries }] = await Promise.all([
-    supabase
-      .from('publications')
-      .select('title, type, year, foreign_language, authors')
-      .eq('profile_id', profileId),
-    supabase
-      .from('qualifications')
-      .select('title, type, is_international, date_end')
-      .eq('profile_id', profileId),
-    supabase
-      .from('work_entries')
-      .select('description, quantity, points_awarded, year, work_types(name, category)')
-      .eq('profile_id', profileId)
-      .eq('status', 'approved'),
-  ]);
+  const [{ data: pubs }, { data: quals }, { data: entries }, { data: survey }, { data: evaluations }] =
+    await Promise.all([
+      supabase
+        .from('publications')
+        .select('title, type, year, foreign_language, authors')
+        .eq('profile_id', profileId),
+      supabase
+        .from('qualifications')
+        .select('title, type, is_international, date_end')
+        .eq('profile_id', profileId),
+      supabase
+        .from('work_entries')
+        .select('description, quantity, points_awarded, year, work_types(name, category)')
+        .eq('profile_id', profileId)
+        .eq('status', 'approved'),
+      supabase
+        .from('student_survey_scores')
+        .select('score')
+        .eq('profile_id', profileId)
+        .eq('academic_year', academicYear)
+        .maybeSingle(),
+      supabase
+        .from('expert_evaluations')
+        .select('evaluation_date, discipline, competence_score, pedagogical_score, personal_score, coefficient, evaluator_name')
+        .eq('profile_id', profileId)
+        .eq('academic_year', academicYear)
+        .order('evaluation_date', { ascending: false }),
+    ]);
 
   const items: ReportItem[] = [];
 
@@ -108,7 +137,19 @@ export async function getLecturerReportData(
 
   const totalPoints = items.reduce((sum, i) => sum + i.points, 0);
 
-  return { fullName, academicYear, items, totalPoints };
+  const surveyInfo: SurveyInfo | null = survey
+    ? { score: survey.score, coefficient: getSurveyCoefficient(survey.score) }
+    : null;
+
+  const expertEvaluations: ExpertEvaluationSummary[] = (evaluations ?? []).map((ev) => ({
+    date: ev.evaluation_date,
+    discipline: ev.discipline,
+    total: ev.competence_score + ev.pedagogical_score + ev.personal_score,
+    coefficient: ev.coefficient,
+    evaluatorName: ev.evaluator_name,
+  }));
+
+  return { fullName, academicYear, items, totalPoints, surveyInfo, expertEvaluations };
 }
 
 /** Builds the department-wide summary report (one row per lecturer) for a завкаф export. */
@@ -142,3 +183,4 @@ export async function getDepartmentReportData(
     averagePoints: summary.averagePoints,
   };
 }
+

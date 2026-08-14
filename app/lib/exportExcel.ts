@@ -17,6 +17,36 @@ export function exportLecturerReportExcel(data: LecturerReportData) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Рейтинг');
 
+  if (data.surveyInfo || data.expertEvaluations.length > 0) {
+    const evalRows: Record<string, string | number>[] = [];
+
+    if (data.surveyInfo) {
+      evalRows.push({
+        'Тип': 'Анкетування студентів',
+        'Дата': '',
+        'Дисципліна': '',
+        'Бали / Оцінка': data.surveyInfo.score,
+        'Коефіцієнт': data.surveyInfo.coefficient,
+        'Експерт': '',
+      });
+    }
+
+    for (const ev of data.expertEvaluations) {
+      evalRows.push({
+        'Тип': 'Експертна оцінка заняття',
+        'Дата': new Date(ev.date).toLocaleDateString('uk-UA'),
+        'Дисципліна': ev.discipline ?? '',
+        'Бали / Оцінка': `${ev.total} / 100`,
+        'Коефіцієнт': ev.coefficient,
+        'Експерт': ev.evaluatorName ?? '',
+      });
+    }
+
+    const evalWorksheet = XLSX.utils.json_to_sheet(evalRows);
+    evalWorksheet['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 25 }, { wch: 14 }, { wch: 10 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(workbook, evalWorksheet, 'Анкетування та оцінка');
+  }
+
   XLSX.writeFile(workbook, `Рейтинг_${data.fullName}_${data.academicYear}.xlsx`);
 }
 

@@ -129,26 +129,34 @@ export default function DashboardPage() {
   <h3 className="font-semibold text-gray-800">Звітність</h3>
   <p className="text-gray-400 text-sm mt-1">Експорт у PDF/Excel</p>
 </div>
-          {role === 'head' && (
-            <>
-              <div
-                onClick={() => router.push('/admin/rating')}
-                className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition border-2 border-blue-100"
-              >
-                <div className="text-3xl mb-3">⚙️</div>
-                <h3 className="font-semibold text-gray-800">Рейтинг кафедри</h3>
-                <p className="text-gray-400 text-sm mt-1">Пороги та зведена таблиця</p>
-              </div>
-              <div
-                onClick={() => router.push('/admin/work-approvals')}
-                className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition border-2 border-blue-100"
-              >
-                <div className="text-3xl mb-3">✅</div>
-                <h3 className="font-semibold text-gray-800">Записи на розгляді</h3>
-                <p className="text-gray-400 text-sm mt-1">Затвердження видів робіт викладачів</p>
-              </div>
-            </>
-          )}
+{role === 'head' && (
+  <>
+    <div
+      onClick={() => router.push('/admin/rating')}
+      className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition border-2 border-blue-100"
+    >
+      <div className="text-3xl mb-3">⚙️</div>
+      <h3 className="font-semibold text-gray-800">Рейтинг кафедри</h3>
+      <p className="text-gray-400 text-sm mt-1">Пороги та зведена таблиця</p>
+    </div>
+    <div
+      onClick={() => router.push('/admin/work-approvals')}
+      className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition border-2 border-blue-100"
+    >
+      <div className="text-3xl mb-3">✅</div>
+      <h3 className="font-semibold text-gray-800">Записи на розгляді</h3>
+      <p className="text-gray-400 text-sm mt-1">Затвердження видів робіт викладачів</p>
+    </div>
+    <div
+      onClick={() => router.push('/admin/evaluations')}
+      className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition border-2 border-blue-100"
+    >
+      <div className="text-3xl mb-3">📝</div>
+      <h3 className="font-semibold text-gray-800">Анкетування та оцінка занять</h3>
+      <p className="text-gray-400 text-sm mt-1">Опитування студентів, експертна оцінка</p>
+    </div>
+  </>
+)}
         </div>
       </main>
     </div>
